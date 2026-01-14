@@ -2,7 +2,7 @@ import json
 import boto3
 import os
 import uuid
-# Import your modules
+# Import modules
 from gen_text import generate_story
 from gen_image import generate_image
 

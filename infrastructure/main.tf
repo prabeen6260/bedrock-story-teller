@@ -24,7 +24,7 @@ resource "aws_lambda_function" "story_generator" {
   image_uri     = "${data.aws_ecr_repository.app_repo.repository_url}:latest"
   
   # ARM64 architecture (matches M-series Mac build)
-  architectures = ["arm64"]
+  architectures = ["x86_64"]
   timeout       = 180  
   memory_size   = 1024 
   

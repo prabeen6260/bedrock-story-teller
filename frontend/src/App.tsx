@@ -2,13 +2,19 @@ import { useState } from 'react'
 import './App.css'
 import exampleCat from './assets/cat.png'
 
-function App() {
-  const [prompt, setPrompt] = useState('')
-  const [result, setResult] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+// FIX: Define what your API response looks like
+interface StoryResult {
+  message: string;
+  story_text: string;
+  image_url: string;
+}
 
-  // PASTE YOUR LAMBDA URL HERE
+function App() {
+  const [prompt, setPrompt] = useState<string>('')
+  const [result, setResult] = useState<StoryResult | null>(null)
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
+
   const API_URL = import.meta.env.VITE_API_URL;
 
   const generateStory = async () => {
@@ -27,10 +33,16 @@ function App() {
 
       if (!response.ok) throw new Error('Generation failed');
 
-      const data = await response.json();
+      // FIX: Tell TypeScript this data matches our StoryResult interface
+      const data: StoryResult = await response.json();
       setResult(data);
-    } catch (err) {
-      setError(err.message);
+    } catch (err: unknown) {
+      // FIX: Safely handle the error type
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred");
+      }
     } finally {
       setLoading(false);
     }
@@ -95,7 +107,7 @@ function App() {
           <div className="story-content">
             <div className="story-header">
               <h3 className="story-title">Generated Story</h3>
-              <div className="meta">{result.story_text ? result.story_text.trim().split(/\s+/).length : 0} words</div>
+              <div className="meta">{wordCount(result.story_text)} words</div>
             </div>
             <p>{result.story_text}</p>
             <footer className="card-footer">
