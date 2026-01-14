@@ -1,0 +1,47 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.py'          # Only run if Python code changes
+      - 'Dockerfile'
+      - 'requirements.txt'
+
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::987684849904:role/github-actions-deployer  # <-- ARN HERE
+          aws-region: us-east-2
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, Tag, and Push Image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: bedrock-story-teller # <-- REPO NAME
+          IMAGE_TAG: latest
+        run: |
+          # Build with no provenance for AWS Lambda compatibility
+          docker build --provenance=false -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Update Lambda Function
+        run: |
+          aws lambda update-function-code \
+            --function-name bedrock-story-generator \
+            --image-uri ${{ steps.login-ecr.outputs.registry }}/storyteller-repo:latest
