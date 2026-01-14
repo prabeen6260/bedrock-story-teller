@@ -1,22 +1,21 @@
-name: Deploy Full Stack
+name: Deploy to AWS
 
 on:
   push:
     branches:
       - main
     paths:
-      - '**.py'
+      - '**.py'          # Only run if Python code changes
       - 'Dockerfile'
+      - 'requirements.txt'
       - '.github/workflows/**'
-      - 'frontend/**'  
 
 permissions:
-  id-token: write
-  contents: read
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
 
 jobs:
-  # JOB 1: Deploy Backend (Lambda)
-  deploy-backend:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -25,58 +24,25 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::987684849904:role/github-actions-deployer
+          role-to-assume: arn:aws:iam::987684849904:role/github-actions-deployer  # <-- ARN HERE
           aws-region: us-east-2
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & Push Backend
+      - name: Build, Tag, and Push Image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: storyteller-repo 
+          ECR_REPOSITORY: storyteller-repo # <-- REPO NAME
           IMAGE_TAG: latest
         run: |
+          # Build with no provenance for AWS Lambda compatibility
           docker build --provenance=false -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      - name: Update Lambda
+      - name: Update Lambda Function
         run: |
           aws lambda update-function-code \
             --function-name bedrock-story-generator \
             --image-uri ${{ steps.login-ecr.outputs.registry }}/storyteller-repo:latest
-
-  # JOB 2: Deploy Frontend (React -> S3)
-  deploy-frontend:
-    needs: deploy-backend # Wait for backend to finish first
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::987684849904:role/github-actions-deployer
-          aws-region: us-east-2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Build React App
-        working-directory: ./frontend
-        #inject the backend URL during the build!
-        env:
-          VITE_API_URL: "https://euyu4ufbruni7mejgqpw2alj3i0yeqlf.lambda-url.us-east-2.on.aws/" 
-        run: |
-          npm install
-          npm run build
-
-      - name: Upload to S3
-        env:
-          BUCKET_NAME: "storyteller-frontend-20260114033405615800000001" 
-        run: |
-          aws s3 sync ./frontend/dist s3://$BUCKET_NAME --delete
