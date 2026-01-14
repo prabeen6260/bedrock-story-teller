@@ -170,7 +170,6 @@ resource "aws_iam_role_policy" "github_actions_policy" {
   })
 }
 
-
 # =========================================================================
 # FRONTEND HOSTING (S3)
 # =========================================================================
@@ -238,4 +237,3 @@ output "function_url" {
 output "github_role_arn" {
   value = aws_iam_role.github_actions_role.arn
 }
-
