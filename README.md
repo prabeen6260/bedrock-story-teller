@@ -1,4 +1,4 @@
-Bedrock Storyteller 🐑
+## Bedrock Storyteller 🐑
 
 A full-stack serverless application that generates short stories and matching scene illustrations using generative AI.
 
@@ -8,17 +8,6 @@ Live Demo: https://story-teller.lambda-lambs.com
 Architecture
 The application runs entirely on serverless infrastructure, keeping costs near zero when idle.
 
-graph TD
-    User[User] -->|HTTPS| CF[CloudFront CDN]
-    CF -->|Hosts| S3[S3 Bucket (React App)]
-    
-    User -->|API Calls| URL[Lambda Function URL]
-    
-    subgraph "Backend (AWS Lambda)"
-        URL --> Python[FastAPI / Python]
-        Python -->|Text Gen| Bedrock[AWS Bedrock (Claude 3)]
-        Python -->|Image Gen| Gemini[Google Gemini / Titan]
-    end
 
 Tech Stack
 
@@ -68,6 +57,7 @@ Prerequisites
 
 Project Structure
 
+.
 ├── .github/workflows   # CI/CD Pipelines (YAML)
 ├── frontend            # React Application
 │   ├── src             # Components & Logic
